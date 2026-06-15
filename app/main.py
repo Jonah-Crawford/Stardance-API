@@ -1,9 +1,18 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.database import connect, init_db, get_metadata
 
-app = FastAPI(title="Stardance API")
+app = FastAPI(title="Craw's Stardance API")
+
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=["*"],
+  allow_methods=["*"],
+  allow_headers=["*"]
+)
 
 @app.on_event("startup")
+
 def startup(): init_db()
 
 @app.get("/")

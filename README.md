@@ -9,6 +9,7 @@ Main API link: https://stardance-api.ultimatecraw.xyz/docs#/
 - Easy-to-use endpoints
 - Accurate project rankings
 - Queryable data
+- Historic data collection
 
 ## How it works
 FastAPI works in Python to scrape project data direct from stardance's website.
