@@ -20,6 +20,13 @@ def init_db():
   )
   """)
 
+  db.execute("""
+  CREATE TABLE IF NOT EXISTS metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  )
+  """)
+
   db.commit()
   db.close()
 
@@ -51,3 +58,28 @@ def upsert_project(project):
 
   db.commit()
   db.close()
+
+def set_metadata(key, value):
+  db = connect()
+
+  db.execute("""
+  INSERT INTO metadata (key, value)
+  VALUES (?, ?)
+  ON CONFLICT(key) DO UPDATE SET
+    value = excluded.value
+  """, (key, str(value)))
+
+  db.commit()
+  db.close()
+
+def get_metadata():
+  db = connect()
+
+  rows = db.execute("""
+  SELECT key, value
+  FROM metadata
+  """).fetchall()
+
+  db.close()
+
+  return {key: value for key, value in rows}

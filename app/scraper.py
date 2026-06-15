@@ -3,7 +3,8 @@ import time
 import requests
 
 from bs4 import BeautifulSoup
-from app.database import init_db, upsert_project
+from datatime import datetime, timezone
+from app.database import init_db, upsert_project, set_metadata
 
 BASE = "https://stardance.hackclub.com/projects/{}"
 DELAY = 0.2
@@ -50,6 +51,8 @@ def run_scrape(start_id=1, end_id=20000):
 
   consecutive_404s = 0
 
+  projects_found = 0
+
   for pid in range(start_id, end_id + 1):
     result = get_project(pid)
 
@@ -62,10 +65,15 @@ def run_scrape(start_id=1, end_id=20000):
     elif result == "ERROR": print(f"[{pid}] Error")
 
     else:
+      projects_found += 1
       consecutive_404s = 0
       upsert_project(result)
       print(f"[{pid}] {result['title']}")
 
     time.sleep(DELAY)
+
+  set_metadata("last_scrape_finished", datetime.now(timezone.utc).isoformat())
+  set_metadata("highest_project_id_checked", pid)
+  set_metadata("projects_found_this_run", projects_found)
 
 if __name__ == "__main__": run_scrape()

@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.database import connect, init_db
+from app.database import connect, init_db, get_metadata
 
 app = FastAPI(title="Stardance API")
 
@@ -79,3 +79,32 @@ def get_project(project_id: int):
   if not row: return {"error": "Project not found"}
 
   return row
+
+@app.get("/stats")
+def stats():
+  db = connect()
+  metadata = get_metadata()
+
+  project_count = db.execute("""
+  SELECT COUNT(*)
+  FROM projects
+  """).fetchone()[0]
+
+  total_hours = db.execute("""
+  SELECT COALESCE(SUM(hours), 0)
+  FROM projects
+  """).fetchone()[0]
+
+  total_followers = db.execute("""
+  SELECT COALESCE(SUM(followers), 0)
+  FROM projects
+  """).fetchone()[0]
+
+  db.close()
+
+  return {
+    "projects_indexed": project_count,
+    "total_hours": total_hours,
+    "total_followers": total_followers,
+    "metadata": metadata
+  }
