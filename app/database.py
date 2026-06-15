@@ -21,11 +21,53 @@ def init_db():
   """)
 
   db.execute("""
+  CREATE TABLE IF NOT EXISTS project_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL,
+    scraped_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    hours REAL,
+    followers INTEGER,
+    devlogs INTEGER
+  )
+  """)
+
+  db.execute("""
+  CREATE INDEX IF NOT EXISTS idx_snapshots_project_time
+  ON project_snapshots(project_id, scraped_at)
+  """)
+
+  db.execute("""
+  CREATE INDEX IF NOT EXISTS idx_snapshots_time
+  ON project_snapshots(scraped_at)
+  """)
+
+  db.execute("""
   CREATE TABLE IF NOT EXISTS metadata (
     key TEXT PRIMARY KEY,
     value TEXT
   )
   """)
+
+  db.commit()
+  db.close()
+
+def insert_snapshot(project):
+  db = connect()
+
+  db.execute("""
+  INSERT INTO project_snapshots (
+    project_id,
+    hours,
+    followers,
+    devlogs
+  )
+  VALUES (?, ?, ?, ?)
+  """, (
+    project["id"],
+    project["hours"],
+    project["followers"],
+    project["devlogs"]
+  ))
 
   db.commit()
   db.close()

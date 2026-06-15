@@ -4,7 +4,7 @@ import requests
 
 from bs4 import BeautifulSoup
 from datatime import datetime, timezone
-from app.database import init_db, upsert_project, set_metadata
+from app.database import init_db, upsert_project, insert_project, set_metadata
 
 BASE = "https://stardance.hackclub.com/projects/{}"
 DELAY = 0.2
@@ -68,6 +68,7 @@ def run_scrape(start_id=1, end_id=20000):
       projects_found += 1
       consecutive_404s = 0
       upsert_project(result)
+      insert_snapshot(result)
       print(f"[{pid}] {result['title']}")
 
     time.sleep(DELAY)

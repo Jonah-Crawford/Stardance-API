@@ -14,7 +14,9 @@ def home():
       "/projects",
       "/projects/top/hours",
       "/projects/top/followers",
+      "/projects/top/growth/{field}",
       "/projects/{project_id}",
+      "/projects/{project_id}/history",
       "/stats"
     ]
   }
@@ -58,6 +60,82 @@ def top_projects(field: str, limit: int = 100):
   ORDER BY {allowed[field]} DESC
   LIMIT ?
   """, (limit,)).fetchall()
+
+  db.close()
+  return rows
+
+@app.get("/projects/{project_id}/history")
+def project_history(project_id: int, limit: int = 100):
+  db = connect()
+  db.row_factory = lambda cursor, row: {
+    col[0]: row[i] for i, col in enumerate(cursor.description)
+  }
+
+  rows = db.execute("""
+  SELECT
+    scraped_at,
+    hours,
+    followers,
+    devlogs
+  FROM project_snapshots
+  WHERE project_id = ?
+  ORDER BY scraped_at ASC
+  LIMIT ?
+  """, (project_id, limit)).fetchall()
+
+  db.close()
+  return rows
+
+@app.get("/projects/top/growth/{field}")
+def top_growth(field: str, hours: int = 24, limit: int = 20):
+  allowed = {
+    "hours": "hours",
+    "followers": "followers",
+    "devlogs": "devlogs"
+  }
+
+  if field not in allowed:
+    return {"error": "Invalid field"}
+
+  column = allowed[field]
+
+  db = connect()
+  db.row_factory = lambda cursor, row: {
+    col[0]: row[i] for i, col in enumerate(cursor.description)
+  }
+
+  rows = db.execute(f"""
+  WITH recent AS (
+    SELECT
+      project_id,
+      MIN(scraped_at) AS first_seen,
+      MAX(scraped_at) AS last_seen
+    FROM project_snapshots
+    WHERE scraped_at >= datetime('now', ?)
+    GROUP BY project_id
+  )
+  SELECT
+    p.id,
+    p.title,
+    p.author,
+    p.url,
+    old.{column} AS old_value,
+    new.{column} AS new_value,
+    new.{column} - old.{column} AS gained,
+    old.scraped_at AS from_time,
+    new.scraped_at AS to_time
+  FROM recent r
+  JOIN project_snapshots old
+    ON old.project_id = r.project_id
+   AND old.scraped_at = r.first_seen
+  JOIN project_snapshots new
+    ON new.project_id = r.project_id
+   AND new.scraped_at = r.last_seen
+  JOIN projects p
+    ON p.id = r.project_id
+  ORDER BY gained DESC
+  LIMIT ?
+  """, (f"-{hours} hours", limit)).fetchall()
 
   db.close()
   return rows
