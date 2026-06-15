@@ -14,7 +14,8 @@ def home():
       "/projects",
       "/projects/top/hours",
       "/projects/top/followers",
-      "/projects/{project_id}"
+      "/projects/{project_id}",
+      "/stats"
     ]
   }
 
